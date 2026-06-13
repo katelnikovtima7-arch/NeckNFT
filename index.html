@@ -1,1 +1,546 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MotoMarket — Цифровые карточки</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
+        body {
+            background: #0A0F1A;
+            font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            background: #0A0F1A;
+            display: flex;
+            flex-direction: column;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            padding: 20px 20px 8px 20px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #4A8BDF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .header p {
+            font-size: 0.7rem;
+            color: #5A6E8A;
+            margin-top: 4px;
+        }
+
+        /* Баланс */
+        .balance-card {
+            background: #1A2438;
+            margin: 8px 16px;
+            padding: 12px 20px;
+            border-radius: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            border: 1px solid #2A3A50;
+        }
+        .balance-label {
+            color: #7F8FA4;
+            font-size: 0.8rem;
+        }
+        .balance-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #FFD966;
+        }
+
+        /* Основной контент (скроллится) */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 16px;
+        }
+
+        /* Карточка товара / объявления */
+        .item-card {
+            background: #1A2438;
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #2A3A50;
+            transition: 0.1s;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .item-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+        }
+        .item-number {
+            font-size: 0.8rem;
+            color: #2F9EFF;
+            background: #2F9EFF20;
+            padding: 4px 10px;
+            border-radius: 30px;
+        }
+        .item-image {
+            background: #0F1626;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .item-image span {
+            font-size: 3rem;
+        }
+        .item-owner {
+            font-size: 0.7rem;
+            color: #5A6E8A;
+            margin-bottom: 12px;
+        }
+        .item-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #FFD966;
+            margin-bottom: 12px;
+        }
+        .btn {
+            background: #2F9EFF;
+            border: none;
+            border-radius: 60px;
+            padding: 12px;
+            width: 100%;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.07s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-secondary {
+            background: #2A3A50;
+        }
+        .btn-danger {
+            background: #8B3A3A;
+        }
+        .sell-form {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .sell-input {
+            flex: 1;
+            background: #0F1626;
+            border: 1px solid #2A3A50;
+            border-radius: 60px;
+            padding: 10px 16px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #5A6E8A;
+        }
+
+        /* Нижняя навигация */
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background: #0A0F1A;
+            border-top: 1px solid #1A2438;
+            padding: 10px 16px 20px;
+            flex-shrink: 0;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.5;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .nav-item.active {
+            opacity: 1;
+        }
+        .nav-icon { font-size: 1.4rem; }
+        .nav-label { font-size: 0.6rem; color: #A0B4D0; }
+
+        /* Адаптация */
+        @media (max-width: 500px) {
+            .item-name { font-size: 1rem; }
+            .balance-value { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <h1>MotoMarket</h1>
+        <p>Цифровые карточки • коллекционируй • продавай</p>
+    </div>
+
+    <div class="balance-card">
+        <span class="balance-label">💰 МОЙ БАЛАНС (вирт.)</span>
+        <span class="balance-value" id="balanceValue">0</span>
+    </div>
+
+    <div class="content" id="contentArea">
+        <!-- сюда динамически подставляются экраны -->
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" data-tab="shop">
+            <div class="nav-icon">🏪</div>
+            <div class="nav-label">Магазин</div>
+        </div>
+        <div class="nav-item" data-tab="market">
+            <div class="nav-icon">📊</div>
+            <div class="nav-label">Рынок</div>
+        </div>
+        <div class="nav-item" data-tab="profile">
+            <div class="nav-icon">👤</div>
+            <div class="nav-label">Профиль</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- ДАННЫЕ ----------
+    let currentUser = null;
+    let users = [];
+    let cards = [];           // все выпущенные карточки { id, name, number, ownerId, forSale, price }
+    let nextCardId = 1;
+    let currentTab = 'shop';
+    
+    // Загрузка из localStorage
+    function loadData() {
+        const savedUsers = localStorage.getItem('motomarket_users');
+        const savedCards = localStorage.getItem('motomarket_cards');
+        const savedNextId = localStorage.getItem('motomarket_nextId');
+        const savedCurrentUser = localStorage.getItem('motomarket_currentUser');
+        
+        if (savedUsers) users = JSON.parse(savedUsers);
+        else users = [{ id: 1, login: 'demo', password: '123', balance: 500, cards: [] }];
+        
+        if (savedCards) cards = JSON.parse(savedCards);
+        else {
+            // создаём 5 стартовых карточек в магазине
+            cards = [];
+            for (let i = 1; i <= 5; i++) {
+                cards.push({
+                    id: nextCardId++,
+                    name: 'MotoCard',
+                    number: `#00${i}`,
+                    ownerId: null,
+                    forSale: false,
+                    price: 0,
+                    isOfficial: true
+                });
+            }
+        }
+        if (savedNextId) nextCardId = parseInt(savedNextId);
+        if (savedCurrentUser) {
+            try {
+                currentUser = JSON.parse(savedCurrentUser);
+                // синхронизируем массив cards пользователя
+                const userFromList = users.find(u => u.id === currentUser.id);
+                if (userFromList) currentUser = userFromList;
+            } catch(e) {}
+        }
+        if (!currentUser && users.length) currentUser = users[0];
+        saveToLocal();
+        renderCurrentTab();
+    }
+    
+    function saveToLocal() {
+        localStorage.setItem('motomarket_users', JSON.stringify(users));
+        localStorage.setItem('motomarket_cards', JSON.stringify(cards));
+        localStorage.setItem('motomarket_nextId', nextCardId);
+        if (currentUser) localStorage.setItem('motomarket_currentUser', JSON.stringify(currentUser));
+    }
+    
+    // helper: найти карточки пользователя
+    function getUserCards(userId) {
+        return cards.filter(c => c.ownerId === userId);
+    }
+    
+    // Обновить баланс в интерфейсе
+    function updateBalanceUI() {
+        const balanceSpan = document.getElementById('balanceValue');
+        if (balanceSpan && currentUser) balanceSpan.innerText = currentUser.balance;
+    }
+    
+    // Покупка в магазине (официальная карточка)
+    function buyFromShop(card) {
+        if (!currentUser) { alert('Сначала войдите в профиль'); return; }
+        if (currentUser.balance < 100) {
+            alert('❌ Не хватает виртуального баланса! Пополните через донат (скоро).');
+            return;
+        }
+        // создаём новую карточку для пользователя
+        const newCard = {
+            id: nextCardId++,
+            name: card.name,
+            number: `#${String(nextCardId).padStart(3,'0')}`,
+            ownerId: currentUser.id,
+            forSale: false,
+            price: 0,
+            isOfficial: false
+        };
+        cards.push(newCard);
+        currentUser.balance -= 100;
+        // обновляем пользователя в массиве users
+        const userIndex = users.findIndex(u => u.id === currentUser.id);
+        if (userIndex !== -1) users[userIndex].balance = currentUser.balance;
+        saveToLocal();
+        updateBalanceUI();
+        renderCurrentTab();
+        alert(`✅ Куплена карточка ${newCard.name} ${newCard.number}`);
+    }
+    
+    // Выставить на продажу
+    function putForSale(cardId, price) {
+        if (!currentUser) return;
+        const card = cards.find(c => c.id === cardId);
+        if (!card || card.ownerId !== currentUser.id) return;
+        if (price < 10) { alert('Цена должна быть от 10'); return; }
+        card.forSale = true;
+        card.price = price;
+        saveToLocal();
+        renderCurrentTab();
+        alert(`✅ Карточка выставлена на рынок за ${price} вирт.`);
+    }
+    
+    // Снять с продажи
+    function removeFromSale(cardId) {
+        const card = cards.find(c => c.id === cardId);
+        if (!card || card.ownerId !== currentUser.id) return;
+        card.forSale = false;
+        card.price = 0;
+        saveToLocal();
+        renderCurrentTab();
+    }
+    
+    // Купить на рынке
+    function buyFromMarket(card) {
+        if (!currentUser) { alert('Войдите в профиль'); return; }
+        if (card.ownerId === currentUser.id) { alert('Это твоя карточка'); return; }
+        if (currentUser.balance < card.price) { alert('❌ Не хватает баланса'); return; }
+        const seller = users.find(u => u.id === card.ownerId);
+        if (!seller) return;
+        // списываем у покупателя
+        currentUser.balance -= card.price;
+        // начисляем продавцу (виртуально)
+        seller.balance += card.price;
+        // обновляем владельца карточки
+        card.ownerId = currentUser.id;
+        card.forSale = false;
+        card.price = 0;
+        // обновляем в массиве users
+        const buyerIndex = users.findIndex(u => u.id === currentUser.id);
+        if (buyerIndex !== -1) users[buyerIndex].balance = currentUser.balance;
+        const sellerIndex = users.findIndex(u => u.id === seller.id);
+        if (sellerIndex !== -1) users[sellerIndex].balance = seller.balance;
+        saveToLocal();
+        updateBalanceUI();
+        renderCurrentTab();
+        alert(`✅ Куплено! ${card.name} ${card.number} за ${card.price}`);
+    }
+    
+    // Рендер магазина (официальные карточки по 100)
+    function renderShop() {
+        const officialCards = cards.filter(c => c.isOfficial === true && c.ownerId === null);
+        if (officialCards.length === 0) {
+            return `<div class="empty-state">✨ Скоро новые карточки</div>`;
+        }
+        return officialCards.map(card => `
+            <div class="item-card">
+                <div class="item-header">
+                    <div class="item-name">${card.name}</div>
+                    <div class="item-number">${card.number}</div>
+                </div>
+                <div class="item-image"><span>🏍️</span></div>
+                <div class="item-price">💰 100 вирт.</div>
+                <button class="btn" onclick="buyFromShop(${JSON.stringify(card).replace(/"/g, '&quot;')})">Купить</button>
+            </div>
+        `).join('');
+    }
+    
+    // Рынок (все карточки в продаже)
+    function renderMarket() {
+        const onSale = cards.filter(c => c.forSale === true && c.ownerId !== null);
+        if (onSale.length === 0) {
+            return `<div class="empty-state">📭 Нет активных объявлений</div>`;
+        }
+        return onSale.map(card => {
+            const owner = users.find(u => u.id === card.ownerId);
+            const ownerName = owner ? owner.login : 'неизвестно';
+            return `
+                <div class="item-card">
+                    <div class="item-header">
+                        <div class="item-name">${card.name}</div>
+                        <div class="item-number">${card.number}</div>
+                    </div>
+                    <div class="item-image"><span>🏍️</span></div>
+                    <div class="item-owner">👤 Владелец: ${ownerName}</div>
+                    <div class="item-price">💰 ${card.price} вирт.</div>
+                    <button class="btn" onclick="buyFromMarket({id:${card.id}, name:'${card.name}', number:'${card.number}', ownerId:${card.ownerId}, price:${card.price}})">Купить</button>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Профиль: мои карточки, возможность выставить на продажу
+    function renderProfile() {
+        if (!currentUser) {
+            return `<div class="empty-state">⚠️ Войдите в профиль (demo / 123)</div>
+                    <div class="item-card">
+                        <input type="text" id="loginInput" placeholder="Логин" class="sell-input" style="margin-bottom:10px;">
+                        <input type="password" id="passInput" placeholder="Пароль" class="sell-input" style="margin-bottom:10px;">
+                        <button class="btn" onclick="login()">Войти</button>
+                        <button class="btn btn-secondary" onclick="register()" style="margin-top:10px;">Регистрация</button>
+                    </div>`;
+        }
+        const myCards = cards.filter(c => c.ownerId === currentUser.id);
+        let cardsHtml = '';
+        if (myCards.length === 0) {
+            cardsHtml = `<div class="empty-state">🎴 У тебя пока нет карточек. Зайди в магазин!</div>`;
+        } else {
+            cardsHtml = myCards.map(card => {
+                const isOnSale = card.forSale;
+                return `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <div class="item-name">${card.name}</div>
+                            <div class="item-number">${card.number}</div>
+                        </div>
+                        <div class="item-image"><span>🏍️</span></div>
+                        ${isOnSale ? `<div class="item-price">💰 В продаже за ${card.price} вирт.</div>` : ''}
+                        ${!isOnSale ? `
+                            <div class="sell-form">
+                                <input type="number" id="price_${card.id}" placeholder="Цена" class="sell-input" value="50">
+                                <button class="btn" onclick="putForSale(${card.id}, document.getElementById('price_${card.id}').value)">Продать</button>
+                            </div>
+                        ` : `
+                            <button class="btn btn-secondary" onclick="removeFromSale(${card.id})">Снять с продажи</button>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        return `
+            <div class="item-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div><span style="color:#FFD966;">👤 ${currentUser.login}</span></div>
+                    <div><span style="color:#2F9EFF;">💰 Баланс: ${currentUser.balance} вирт.</span></div>
+                </div>
+            </div>
+            <div style="margin: 12px 0 8px 0;"><strong>🎴 Мои карточки</strong></div>
+            ${cardsHtml}
+            <div class="empty-state" style="margin-top:16px;">
+                💡 Пополнить виртуальный баланс можно будет через донат<br>
+                Пока что демо-режим.
+            </div>
+        `;
+    }
+    
+    // Главный рендер
+    function renderCurrentTab() {
+        const contentDiv = document.getElementById('contentArea');
+        if (!contentDiv) return;
+        if (currentTab === 'shop') {
+            contentDiv.innerHTML = `<div style="margin-bottom:12px;"><strong>🏪 МАГАЗИН</strong><br><span style="font-size:0.7rem;">Официальные карточки — 100 вирт.</span></div>` + renderShop();
+        } else if (currentTab === 'market') {
+            contentDiv.innerHTML = `<div style="margin-bottom:12px;"><strong>📊 РЫНОК</strong><br><span style="font-size:0.7rem;">Здесь продают игроки</span></div>` + renderMarket();
+        } else if (currentTab === 'profile') {
+            contentDiv.innerHTML = renderProfile();
+        }
+        updateBalanceUI();
+    }
+    
+    // Переключение вкладок
+    function setTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.nav-item').forEach(el => {
+            if (el.dataset.tab === tab) el.classList.add('active');
+            else el.classList.remove('active');
+        });
+        renderCurrentTab();
+    }
+    
+    // Авторизация / регистрация
+    window.login = function() {
+        const login = document.getElementById('loginInput').value.trim();
+        const pass = document.getElementById('passInput').value.trim();
+        const user = users.find(u => u.login === login && u.password === pass);
+        if (user) {
+            currentUser = user;
+            saveToLocal();
+            renderCurrentTab();
+            alert(`Добро пожаловать, ${login}`);
+        } else {
+            alert('Неверный логин или пароль');
+        }
+    };
+    
+    window.register = function() {
+        const login = document.getElementById('loginInput').value.trim();
+        const pass = document.getElementById('passInput').value.trim();
+        if (!login || !pass) { alert('Заполните логин и пароль'); return; }
+        if (users.find(u => u.login === login)) { alert('Логин занят'); return; }
+        const newId = users.length ? Math.max(...users.map(u => u.id)) + 1 : 2;
+        const newUser = { id: newId, login: login, password: pass, balance: 200, cards: [] };
+        users.push(newUser);
+        currentUser = newUser;
+        saveToLocal();
+        renderCurrentTab();
+        alert(`Регистрация успешна! Баланс 200 вирт.`);
+    };
+    
+    // Навешиваем события на навигацию
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.addEventListener('click', () => setTab(el.dataset.tab));
+    });
+    
+    // Экспортируем функции в глобальный объект для вызова из onclick
+    window.buyFromShop = buyFromShop;
+    window.putForSale = putForSale;
+    window.removeFromSale = removeFromSale;
+    window.buyFromMarket = buyFromMarket;
+    
+    // Загрузка данных
+    loadData();
+</script>
+</body>
+</html>
